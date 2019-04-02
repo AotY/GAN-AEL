@@ -13,7 +13,7 @@ from modules.generator import Generator
 from modules.discriminator import Discriminator
 
 
-class GANAEL(nn.module):
+class GANAEL(nn.Module):
     def __init__(self, config):
         super(GANAEL, self).__init__()
 
@@ -26,7 +26,7 @@ class GANAEL(nn.module):
         self.discriminator = Discriminator(config, embedding)
 
         # tied embedding
-        self.generator.embedding.data = self.discriminator.embedding.data
+        self.generator.embedding.weight.data = self.discriminator.embedding.weight.data
 
     # adversarial
     def forward(self, q_inputs, q_inputs_len, r_inputs, sos_input):

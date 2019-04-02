@@ -18,6 +18,8 @@ python train.py \
     --log log/ \
     --save_mode best \
     --save_model models/ \
+    --max_vocab_size 2e4 \
+    --min_freq 2 \
     --embedding_size 128 \
     --hidden_size 256 \
     --num_layers 1 \
@@ -32,8 +34,8 @@ python train.py \
     --lr_g 0.001 \
     --lr_d 0.001 \
     --min_len 3 \
-    --q_max_len 85 \
-    --r_max_len 85 \
+    --q_max_len 35 \
+    --r_max_len 35 \
     --batch_size 128 \
     --epochs 25 \
     --device cuda \

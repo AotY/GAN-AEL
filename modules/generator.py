@@ -10,11 +10,11 @@
 
 import torch
 import torch.nn as nn
-from modules.rnn_encoder import RNNEcoder
+from modules.rnn_encoder import RNNEncoder
 from modules.rnn_decoder import RNNDecoder
 from modules.reduce_state import ReduceState
 
-class Generator(nn.module):
+class Generator(nn.Module):
     def __init__(self, config, embedding):
         super(Generator, self).__init__()
 
@@ -23,7 +23,7 @@ class Generator(nn.module):
 
         self.dropout = nn.Dropout(config.dropout)
 
-        self.encoder = RNNEcoder(config)
+        self.encoder = RNNEncoder(config)
 
         self.reduce_state = ReduceState()
 

@@ -12,8 +12,8 @@ import argparse
 
 from tqdm import tqdm
 import torch
-from torch.optim import optim
-import torch.nn.funcional as F
+import torch.optim as optim
+import torch.nn.functional as F
 
 from gan_ael import GANAEL
 from misc.dataset import build_iterator, PAD_TOKEN, SOS_TOKEN, EOS_TOKEN
@@ -21,10 +21,19 @@ from modules.early_stopping import EarlyStopping
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, help='')
+parser.add_argument('--vocab_size', type=int, help='')
+parser.add_argument('--max_vocab_size', type=float, help='')
+parser.add_argument('--min_freq', type=int, default=2, help='')
 parser.add_argument('--embedding_size', type=int)
 parser.add_argument('--hidden_size', type=int)
 parser.add_argument('--bidirectional', action='store_true')
 parser.add_argument('--num_layers', type=int)
+parser.add_argument('--in_channels', type=int)
+parser.add_argument('--out_channels', type=int)
+# https://stackoverflow.com/questions/15753701/argparse-option-for-passing-a-list-as-option/15753721#15753721
+parser.add_argument('--kernel_heights', nargs='+', type=int, help='')
+parser.add_argument('--stride', type=int)
+parser.add_argument('--padding', type=int)
 parser.add_argument('--dropout', type=float)
 parser.add_argument('--lr_g', type=float, default=0.001)
 parser.add_argument('--lr_d', type=float, default=0.001)
@@ -52,8 +61,23 @@ print(' '.join(sys.argv))
 random.seed(args.seed)
 torch.manual_seed(args.seed)
 torch.backends.cudnn.deterministic = True
+
 device = torch.device(args.device)
 args.device = device
+
+args.max_vocab_size = int(args.max_vocab_size)
+train_iterator, valid_iterator, vocab = build_iterator(args)
+
+PAD_ID = vocab.stoi.get(PAD_TOKEN)
+SOS_ID = vocab.stoi.get(SOS_TOKEN)
+EOS_ID = vocab.stoi.get(EOS_TOKEN)
+print('PAD_ID: ', PAD_ID)
+print('SOS_ID: ', SOS_ID)
+print('EOS_ID: ', EOS_ID)
+
+#  print('vocab_size: ', len(vocab))
+args.vocab_size = len(vocab)
+print('vocab_size: ', args.vocab_size)
 
 # model
 model = GANAEL(args).to(device)
@@ -73,12 +97,6 @@ optimizer_D = optim.Adam(
     betas=(0.9, 0.98),
     eps=1e-09
 )
-
-train_iterator, valid_iterator, q_field, r_field = build_iterator(args)
-
-PAD_ID = q_field.vocab.stoi(PAD_TOKEN)
-SOS_ID = q_field.vocab.stoi(SOS_TOKEN)
-EOS_ID = q_field.vocab.stoi(EOS_TOKEN)
 
 class GeneratorTraining:
     def __init__(self,):
@@ -366,14 +384,14 @@ class DiscriminatorTraining:
             q_inputs, q_inputs_len, r_inputs, r_inputs_len = batch
 
             # generator fake embedded
-            sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=args.device) * SOS_ID
+            sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=device) * SOS_ID
             fake_embedded = model.generator.approximate(q_inputs, q_inputs_len, sos_input)
 
             # [batch_size], fake and real
             fake_outputs, real_outputs = model.discriminator_forward(q_inputs, r_inputs, fake_embedded)
 
             # backward
-            loss = - torch.mean(torch.log(real_outputs) + torch.log(1. - fake_outputs))
+            loss = torch.log(real_outputs) + torch.log(1.0 - fake_outputs)
 
             # forward
             optimizer_D.zero_grad()
@@ -405,7 +423,7 @@ class DiscriminatorTraining:
                 q_inputs, q_inputs_len, r_inputs, r_inputs_len = batch
 
                 # generator fake embedded
-                sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=args.device) * SOS_ID
+                sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=device) * SOS_ID
                 fake_embedded = model.generator.approximate(q_inputs, q_inputs_len, sos_input)
 
                 # [batch_size], fake and real
@@ -452,12 +470,13 @@ class AdversarialTraining:
 
             q_inputs, q_inputs_len, r_inputs, r_inputs_len = batch
 
-            sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=args.device) * SOS_ID
+            sos_input = torch.ones(1, self.config.batch_size, dtype=torch.long, device=device) * SOS_ID
             fake_outputs, real_outputs = model(q_inputs, q_inputs_len, r_inputs, sos_input)
 
             # backward
             loss_D = -torch.mean(torch.log(real_outputs) + torch.log(1. - fake_outputs))
-            loss_G = torch.mean(torch.log(1. - fake_outputs))
+            #  loss_G = torch.mean(torch.log(1. - fake_outputs))
+            loss_G = torch.mean(real_outputs - fake_outputs)
 
             # update parameters
             optimizer_D.zero_grad()

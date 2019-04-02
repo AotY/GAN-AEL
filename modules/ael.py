@@ -11,19 +11,19 @@ Approximate Embedding Layer
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-class AEL(nn.module):
+
+class AEL(nn.Module):
     def __init__(self, config):
         super(AEL, self).__init__()
         self.device = config.device
 
         self.softmax = nn.Softmax()
 
-        self.fc = nn.Linear(self.hidden_size, self.vocab_size)
+        self.fc = nn.Linear(config.hidden_size, config.vocab_size)
 
-    def noise(self, hidden_satet):
-        noise = torch.rand(hidden_state.size()).normal_(0., 0.1), requires_grad=False).to(self.device)
+    def noise(self, hidden_state):
+        noise = torch.rand(hidden_state.size(), requires_grad=False).normal_(0., 0.1).to(self.device)
         hidden_state = hidden_state + noise
         return hidden_state
 
@@ -53,6 +53,3 @@ class AEL(nn.module):
             return ael_output, ael_weight
         else:
             return output
-
-
-

@@ -34,7 +34,7 @@ class RNNDecoder(nn.Module):
             dropout=config.dropout if self.num_layers > 1 else 0
         )
 
-        self.ael = AEL(config.device)
+        self.ael = AEL(config)
 
     def forward(self, embedded, hidden_state, embedding, is_ael=False):
         '''

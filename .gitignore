@@ -11,7 +11,6 @@ __pycache__
 data/*.dict
 data/*.pkl
 
-
 ### log
 log/
 
